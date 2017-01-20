@@ -35,7 +35,7 @@ class CANalyser():
 	def OpenDevice(self):
 		
 		self.cansdk.VCI_OpenDevice.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
-		if self.cansdk.VCI_OpenDevice(self.deviceType, self.deviceIndex, 0):
+		if self.cansdk.VCI_OpenDevice(self.deviceType, self.deviceIndex, 0) == 1:
 			print 'Device opened'
 		else:
 			print 'Device open ERROR'
@@ -43,7 +43,7 @@ class CANalyser():
 	def CloseDevice(self):
 	
 		self.cansdk.VCI_CloseDevice.argtypes = [wintypes.DWORD, wintypes.DWORD]
-		if self.cansdk.VCI_CloseDevice(self.deviceType, self.deviceIndex):
+		if self.cansdk.VCI_CloseDevice(self.deviceType, self.deviceIndex) == 1:
 			print 'Device closed'
 		else:
 			print 'Device close ERROR'
@@ -52,7 +52,7 @@ class CANalyser():
 	
 		try:
 			self.cansdk.VCI_InitCAN.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, POINTER(types_define._INIT_CONFIG)]
-			if self.cansdk.VCI_InitCAN(self.deviceType, self.deviceIndex, self.canIndex, self.struInitConfig):
+			if self.cansdk.VCI_InitCAN(self.deviceType, self.deviceIndex, self.canIndex, self.struInitConfig) == 1:
 				print 'Device init success'
 			else:
 				print 'Device init fail'
@@ -63,10 +63,9 @@ class CANalyser():
 	
 		try:
 			self.cansdk.VCI_StartCAN.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
-			if self.cansdk.VCI_StartCAN(self.deviceType, self.deviceIndex, self.canIndex):
+			if self.cansdk.VCI_StartCAN(self.deviceType, self.deviceIndex, self.canIndex) == 1:
 				print 'CAN start success'
 				
-				#thread.start_new_thread( self.Receive(), () )
 			else:
 				print 'CAN fail to start'
 		except Exception as e:
@@ -76,7 +75,7 @@ class CANalyser():
 	
 		try:
 			self.cansdk.VCI_ResetCAN.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
-			if self.cansdk.VCI_ResetCAN(self.deviceType, self.deviceIndex, self.canIndex):
+			if self.cansdk.VCI_ResetCAN(self.deviceType, self.deviceIndex, self.canIndex) == 1:
 				print 'CAN reset success'
 			else:
 				print 'CAN fail to reset'
@@ -86,7 +85,7 @@ class CANalyser():
 	def Transmit(self, InputData):
 	
 		sendData = types_define._VCI_CAN_OBJ()
-		sendData.ID = 0xCC
+		sendData.ID = 0xDA
 		sendData.RemoteFlag = 0
 		sendData.ExternFlag = 0
 		sendData.DataLen = 8 # max is 8 (<=8)
@@ -94,38 +93,45 @@ class CANalyser():
 		
 		try:
 			self.cansdk.VCI_Transmit.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, POINTER(types_define._VCI_CAN_OBJ),wintypes.DWORD]
-			if self.cansdk.VCI_Transmit(self.deviceType, self.deviceIndex, self.canIndex, sendData, 1):
-				print 'Transmit data success'
-			else:
+			if self.cansdk.VCI_Transmit(self.deviceType, self.deviceIndex, self.canIndex, sendData, 1) == -1:
 				print 'Transmit data fail'
+			else:
+				print 'Transmit data success'
 		except Exception as e:
 			print e
 			
 	def Receive(self):
 		
-		#while(1):
+		while(1):
 		
-		receiveData = types_define._VCI_CAN_OBJ*2500
-		receiveDataList = receiveData()
-		Message ="Received Message:"
-		
-		try:
-			len = self.cansdk.VCI_Receive(self.deviceType, self.deviceIndex, self.canIndex, receiveDataList, 2500, 200)
-			if len <=0:
-				print 'Received Empty Message'
-			else:
-				for i in range (len):
-					if receiveDataList[i].RemoteFlag == 0:
-						if receiveDataList[i].DataLen > 8:
-							receiveDataList[i].DataLen = 8
-						for j in range (receiveDataList[i].DataLen):
-							Message+= str(receiveDataList[i].Data[j])
+			receiveData = types_define._VCI_CAN_OBJ*2500
+			receiveDataList = receiveData()
+			Message ="Received Message:"
+			time.sleep(0.1)
+			
+			try:
+				len = self.cansdk.VCI_Receive(self.deviceType, self.deviceIndex, self.canIndex, receiveDataList, 2500, 200)
+				if len <=0:
+					pass
+					#print 'Received Empty Message'
+				else:
+					for i in range (len):
+						if receiveDataList[i].RemoteFlag == 0:
+							ID = receiveDataList[i].ID
+							if receiveDataList[i].DataLen > 8:
+								receiveDataList[i].DataLen = 8
+							for j in range (receiveDataList[i].DataLen):
+								Message+= chr(receiveDataList[i].Data[j])
 							
-						print "received message: ",Message
+							print "ID:", hex(ID) ," ", Message
+					
+				#ime.sleep(0.1)
+					#break
 				
 				
-		except Exception as e:
-			print "exception:", e
+			except Exception as e:
+				print "exception:", e
+				break
 			
 			
 		
@@ -138,8 +144,8 @@ if __name__ == '__main__':
 	canControl.OpenDevice()
 	canControl.InitDevice()
 	canControl.StartCAN()
-	canControl.Receive()
+	#thread.start_new_thread(canControl.Receive(), ())
 	canControl.Transmit((0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x47))
-	time.sleep(1)
+	time.sleep(0.1)
 	canControl.ResetCAN()
 	canControl.CloseDevice()
