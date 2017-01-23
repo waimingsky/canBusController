@@ -36,7 +36,7 @@ class CANalyser():
 		
 		self.cansdk.VCI_OpenDevice.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
 		if self.cansdk.VCI_OpenDevice(self.deviceType, self.deviceIndex, 0) == 1:
-			print 'Device opened'
+			print 'Device open Success'
 		else:
 			print 'Device open ERROR'
 			
@@ -44,7 +44,7 @@ class CANalyser():
 	
 		self.cansdk.VCI_CloseDevice.argtypes = [wintypes.DWORD, wintypes.DWORD]
 		if self.cansdk.VCI_CloseDevice(self.deviceType, self.deviceIndex) == 1:
-			print 'Device closed'
+			print 'Device close Success'
 		else:
 			print 'Device close ERROR'
 			
@@ -67,7 +67,7 @@ class CANalyser():
 				print 'CAN start success'
 				
 			else:
-				print 'CAN fail to start'
+				print 'CAN start fail'
 		except Exception as e:
 			print e
 			
@@ -78,7 +78,7 @@ class CANalyser():
 			if self.cansdk.VCI_ResetCAN(self.deviceType, self.deviceIndex, self.canIndex) == 1:
 				print 'CAN reset success'
 			else:
-				print 'CAN fail to reset'
+				print 'CAN reset fail'
 		except Exception as e:
 			print e
 		
